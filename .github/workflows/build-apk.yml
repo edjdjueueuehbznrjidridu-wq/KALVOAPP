@@ -45,13 +45,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           Path("buildozer.spec").write_text("""[app]
-          title = KALVO Market Lab
+          title = KALVO Market Intelligence
           package.name = kalvomax
           package.domain = org.kalvo.lab
           source.dir = .
           source.include_exts = py,png,jpg,kv,atlas,json,txt
           source.exclude_dirs = tests,bin,.git,__pycache__,.buildozer,.github
-          version = 6.1.0
+          version = 6.4.0
           requirements = python3,kivy==2.2.1,certifi,pyjnius
           orientation = portrait
           fullscreen = 0
@@ -100,7 +100,7 @@ jobs:
           python -m pip install "cython>=0.29,<3.0" virtualenv legacy-cgi
           python -m pip install git+https://github.com/kivy/buildozer.git
           buildozer --version
-          python -c "import cgi; print('cgi ok', cgi)"
+          python -c "import cgi; print('cgi ok')"
 
       - name: Build APK
         run: buildozer -v android debug
