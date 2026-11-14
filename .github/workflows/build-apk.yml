@@ -63,7 +63,7 @@ jobs:
           android.accept_sdk_license = True
           android.archs = arm64-v8a
           android.allow_backup = False
-          p4a.branch = master
+          p4a.branch = v2024.01.21
           android.release_artifact = apk
           android.debug_artifact = apk
 
@@ -94,45 +94,13 @@ jobs:
             libffi-dev libssl-dev libltdl-dev libjpeg-dev libpng-dev \
             gettext libsqlite3-dev liblzma-dev libbz2-dev
 
-      - name: Install Buildozer + Cython
+      - name: Install Buildozer + Cython + legacy-cgi
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install "cython>=0.29,<3.0" virtualenv
+          python -m pip install "cython>=0.29,<3.0" virtualenv legacy-cgi
           python -m pip install git+https://github.com/kivy/buildozer.git
           buildozer --version
-
-      - name: Bootstrap platform and patch libthorvg if present
-        run: |
-          set -euo pipefail
-          buildozer android p4a -- --version || true
-          python3 - <<'PY'
-          from pathlib import Path
-          patched = 0
-          for p in Path(".buildozer").rglob("libthorvg/__init__.py"):
-              t = p.read_text(encoding="utf-8", errors="ignore")
-              if "glob(pattern)[0]" not in t:
-                  print("no fragile glob in", p)
-                  continue
-              t2 = t.replace(
-                  'join(self.ctx.ndk.llvm_prebuilt_dir, "lib/clang/*/lib/linux", lib_arch)',
-                  'join(self.ctx.ndk.llvm_prebuilt_dir, "lib*/clang/*/lib/linux", lib_arch)',
-              )
-              t2 = t2.replace(
-                  "clang_lib_dir = glob(pattern)[0]",
-                  "hits = glob(pattern); clang_lib_dir = hits[0] if hits else None",
-              )
-              t2 = t2.replace(
-                  'libomp = join(clang_lib_dir, "libomp.so")\n            shprint(sh.cp, libomp, join("install", "lib"))',
-                  'if clang_lib_dir:\n                from os.path import exists as _exists\n                libomp = join(clang_lib_dir, "libomp.so")\n                if _exists(libomp):\n                    shprint(sh.cp, libomp, join("install", "lib"))\n                else:\n                    print("libomp missing", libomp)\n            else:\n                print("clang_lib_dir empty; skip libomp")',
-              )
-              if t2 != t:
-                  p.write_text(t2, encoding="utf-8")
-                  patched += 1
-                  print("patched", p)
-              else:
-                  print("unmatched", p)
-          print("patched count", patched)
-          PY
+          python -c "import cgi; print('cgi ok', cgi)"
 
       - name: Build APK
         run: buildozer -v android debug
@@ -142,9 +110,6 @@ jobs:
         run: |
           ls -la bin/ || true
           find . -name "*.apk" 2>/dev/null | head || true
-          find .buildozer -type f \( -name "*.log" -o -name "config.log" \) 2>/dev/null | tail -20 | while read f; do
-            echo "----- $f -----"; tail -n 40 "$f" || true
-          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
